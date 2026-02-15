@@ -24,8 +24,12 @@ export default function Login() {
       setError(err.message)
       return
     }
-    if (data?.session) setSessionFromAuth(data.session)
-    navigate(from, { replace: true })
+    if (data?.session) {
+      setSessionFromAuth(data.session)
+      setTimeout(() => navigate(from, { replace: true }), 0)
+    } else {
+      navigate(from, { replace: true })
+    }
   }
 
   async function handleGoogleSignIn() {

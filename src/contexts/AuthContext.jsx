@@ -15,23 +15,30 @@ export function AuthProvider({ children }) {
       else setProfile(null)
     }
 
+    const hash = typeof window !== 'undefined' ? window.location.hash : ''
+    const hasAuthHash = hash && (hash.includes('access_token') || hash.includes('refresh_token'))
+
     supabase.auth.getSession()
       .then(({ data: { session } }) => applySession(session))
       .catch(() => {
         setUser(null)
         setProfile(null)
       })
-      .finally(() => setLoading(false))
+      .finally(() => {
+        if (!hasAuthHash) setLoading(false)
+      })
 
-    // After OAuth redirect, re-fetch session once so we pick up session from URL hash
+    // After OAuth redirect: keep loading until we've read session from URL hash (Supabase parses it async)
     let hashTimeout
-    const hash = typeof window !== 'undefined' ? window.location.hash : ''
-    if (hash && (hash.includes('access_token') || hash.includes('refresh_token'))) {
+    if (hasAuthHash) {
       hashTimeout = setTimeout(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          if (session) applySession(session)
-        })
-      }, 150)
+        supabase.auth.getSession()
+          .then(({ data: { session } }) => {
+            if (session) applySession(session)
+            setLoading(false)
+          })
+          .catch(() => setLoading(false))
+      }, 300)
     }
 
     let subscription = { unsubscribe: () => {} }
